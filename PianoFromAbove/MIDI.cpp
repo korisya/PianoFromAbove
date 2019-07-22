@@ -538,7 +538,8 @@ int MIDITrack::ParseTrack( const unsigned char *pcData, int iMaxSize, int iTrack
     // Check header
     if ( strncmp( pcBuf, "MTrk", 4 ) != 0 ) return 0;
 
-    return iTotal + ParseEvents( pcData + iTotal, iMaxSize - iTotal, iTrack );
+    ParseEvents(pcData + iTotal, iMaxSize - iTotal, iTrack);
+    return iTotal + iTrkSize;
 }
 
 int MIDITrack::ParseEvents( const unsigned char *pcData, int iMaxSize, int iTrack )

@@ -24,23 +24,9 @@ Timer::Timer()
 {
     // Get the frequency. This should be done in a static constructor. Oh well.
     LARGE_INTEGER liFreq = { 0 };
-    m_bHighPrecision = false; //( QueryPerformanceFrequency( &liFreq ) != 0 );
-    if ( m_bHighPrecision )
-        m_llTicksPerSec = liFreq.QuadPart;
-    else
-    {
-        timeBeginPeriod( 1 );
-        m_llTicksPerSec = 1000;
-    }
+    m_llManualTicksPerFrame = 100;
+    m_llTicksPerSec = 10000;
 
-    // Sometimes QPF is absurdly high. Done to avoid overflows and resorting to doubles
-    if ( m_llTicksPerSec >= m_llPrecisionLimit )
-    {
-        m_llTicksPerSec /= m_llPrecisionThrottle;
-        m_bTooPrecise = true;
-    }
-    else
-        m_bTooPrecise = false;
 
     // Initialize status
     m_bStarted = m_bPaused = false;
@@ -49,8 +35,6 @@ Timer::Timer()
 
 Timer::~Timer()
 {
-    if ( !m_bHighPrecision )
-        timeEndPeriod( 1 );
 }
 
 // Start/reset the timer
@@ -113,18 +97,24 @@ double Timer::GetSecs()
 // Private. Hits the API for the tick count.
 long long Timer::GetRawTicks()
 {
-    if ( m_bHighPrecision )
-    {
-        LARGE_INTEGER liTicks;
-        QueryPerformanceCounter( &liTicks );
-        if ( m_bTooPrecise )
-            return ( 2LL * liTicks.QuadPart + m_llPrecisionThrottle ) / ( 2LL * m_llPrecisionThrottle );
-        else
-            return liTicks.QuadPart;
-    }
-    else
-        return timeGetTime();
+    return m_llManualTicks;
 }
+
+void Timer::AddManualTime(long long time)
+{
+    m_llManualTicks += time;
+}
+
+void Timer::SetFrameRate(unsigned rate)
+{
+    m_llTicksPerSec = rate * 100;
+}
+
+void Timer::IncrementFrame()
+{
+    m_llManualTicks += m_llManualTicksPerFrame;
+}
+
 
 //-----------------------------------------------------------------------------
 // Small utility functions

@@ -596,6 +596,7 @@ GameState::GameError MainScreen::Init()
         m_OutDevice.Open( cAudio.iOutDevice );
 
     m_OutDevice.SetVolume( 1.0 );
+    m_Timer.SetFrameRate(60);
     return Success;
 }
 
@@ -965,6 +966,8 @@ GameState::GameError MainScreen::Logic( void )
     // Song's over
     if ( !m_bPaused && m_llStartTime >= llMaxTime )
         cPlayback.SetPaused( true, true );
+
+    m_Timer.IncrementFrame();
     return Success;
 }
 

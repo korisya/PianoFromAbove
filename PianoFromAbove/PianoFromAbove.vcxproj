@@ -177,6 +177,7 @@
   <ItemGroup>
     <ClInclude Include="Config.h" />
     <ClInclude Include="ConfigProcs.h" />
+    <ClInclude Include="FramePipe.h" />
     <ClInclude Include="GameState.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="MainProcs.h" />
@@ -194,6 +195,7 @@
   <ItemGroup>
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="ConfigProcs.cpp" />
+    <ClCompile Include="FramePipe.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="MainProcs.cpp" />
     <ClCompile Include="MIDI.cpp">

@@ -259,4 +259,7 @@ private:
     int m_iAllWhiteKeys; // Number of white keys are on the screen
     float m_fWhiteCX; // Width of the white keys
     long long m_llRndStartTime; // Rounded start time to make stuff drop at the same time
+
+    // Frame dumping stuff
+    std::vector<unsigned char> m_vImageData;
 };

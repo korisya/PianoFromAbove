@@ -20,6 +20,8 @@
 #include "Renderer.h"
 #include "Misc.h"
 
+#include "FramePipe.h"
+
 INT WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, INT nCmdShow );
 DWORD WINAPI GameThread( LPVOID lpParameter );
 
@@ -39,6 +41,15 @@ TSQueue< MSG > g_MsgQueue; // Producer/consumer to hold events for our game thre
 //-----------------------------------------------------------------------------
 INT WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, INT nCmdShow )
 {
+    g_hVideoPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\pfadump"),
+        PIPE_ACCESS_OUTBOUND,
+        PIPE_TYPE_BYTE | PIPE_WAIT,
+        PIPE_UNLIMITED_INSTANCES,
+        static_cast<DWORD>(1280 * 720 * 4 * 120),
+        0,
+        0,
+        nullptr);
+
     g_hInstance = hInstance;
     srand( ( unsigned )time( NULL ) );
 

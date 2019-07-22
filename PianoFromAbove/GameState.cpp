@@ -15,6 +15,8 @@
 #include "Config.h"
 #include "resource.h"
 
+#include "FramePipe.h"
+
 const wstring GameState::Errors[] =
 {
     L"Success.",
@@ -968,6 +970,37 @@ GameState::GameError MainScreen::Logic( void )
         cPlayback.SetPaused( true, true );
 
     m_Timer.IncrementFrame();
+
+    if (!m_bPaused) {
+        const auto& device = m_pRenderer->m_pd3dDevice;
+        // Make a surface to store the data
+        IDirect3DSurface9* buffer_surface;
+        device->CreateOffscreenPlainSurface(
+            m_pRenderer->GetBufferWidth(),
+            m_pRenderer->GetBufferHeight(),
+            D3DFMT_A8R8G8B8,
+            D3DPOOL_SYSTEMMEM,
+            &buffer_surface,
+            nullptr);
+
+        // Copy the back buffer data
+        IDirect3DSurface9* temp_buffer_surface;
+        device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &temp_buffer_surface);
+        D3DXLoadSurfaceFromSurface(buffer_surface, nullptr, nullptr, temp_buffer_surface, nullptr, nullptr, D3DX_DEFAULT, 0);
+        temp_buffer_surface->Release();
+
+        // Copy to our own buffer
+        assert(((m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight()) % 4) == 0);
+        m_vImageData.resize(m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight() * 4);
+        D3DLOCKED_RECT buffer_locked_rect;
+        buffer_surface->LockRect(&buffer_locked_rect, nullptr, 0);
+        memcpy(&m_vImageData[0], buffer_locked_rect.pBits, m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight() * 4);
+        buffer_surface->UnlockRect();
+
+        // Write to pipe
+        WriteFile(g_hVideoPipe, &m_vImageData[0], static_cast<DWORD>(m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight() * 4), nullptr, nullptr);
+        buffer_surface->Release();
+    }
     return Success;
 }
 

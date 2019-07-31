@@ -395,8 +395,10 @@ void ViewSettings::LoadConfigValues( TiXmlElement *txRoot )
     txView->QueryFloatAttribute( "ZoomX", &m_fZoomX );
     txView->QueryIntAttribute( "MainLeft", &m_iMainLeft );
     txView->QueryIntAttribute( "MainTop", &m_iMainTop );
-    txView->QueryIntAttribute( "MainWidth", &m_iMainWidth );
-    txView->QueryIntAttribute( "MainHeight", &m_iMainHeight );
+    //txView->QueryIntAttribute( "MainWidth", &m_iMainWidth );
+    //txView->QueryIntAttribute( "MainHeight", &m_iMainHeight );
+    m_iMainWidth = 1296;
+    m_iMainHeight = 779;
     txView->QueryIntAttribute( "LibWidth", &m_iLibWidth );
 }
 

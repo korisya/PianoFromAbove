@@ -1030,10 +1030,8 @@ void MainScreen::UpdateState( int iPos )
         vector<int>::iterator it = m_vState.begin();
         while (it != m_vState.end())
         {
-            if (m_vEvents[*it]->GetParam1() == iNote) {
+            if (m_vEvents[*it]->GetParam1() == iNote)
                 m_pNoteState[iNote] = *it;
-                break;
-            }
             ++it;
         }
     }

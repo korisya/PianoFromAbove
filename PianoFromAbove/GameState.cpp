@@ -10,6 +10,7 @@
 *************************************************************************************************/
 #include <algorithm>
 #include <tchar.h>
+#include <immintrin.h>
 
 #include "Globals.h"
 #include "GameState.h"
@@ -1008,8 +1009,8 @@ GameState::GameError MainScreen::Logic( void )
 void MainScreen::UpdateState( int iPos )
 {
     // Event data
-    MIDIChannelEvent *pEvent = m_vEvents[iPos];
-    if ( !pEvent->GetSister() ) return;
+    MIDIChannelEvent* pEvent = m_vEvents[iPos];
+    if (!pEvent->GetSister()) return;
 
     MIDIChannelEvent::ChannelEventType eEventType = pEvent->GetChannelEventType();
     int iTrack = pEvent->GetTrack();
@@ -1018,22 +1019,27 @@ void MainScreen::UpdateState( int iPos )
     int iVelocity = pEvent->GetParam2();
 
     // Turn note on
-    if ( eEventType == MIDIChannelEvent::NoteOn && iVelocity > 0 )
+    if (eEventType == MIDIChannelEvent::NoteOn && iVelocity > 0)
     {
-        m_vState.push_back( iPos );
+        m_vState.push_back(iPos);
         m_pNoteState[iNote] = iPos;
     }
     else
     {
         m_pNoteState[iNote] = -1;
-        MIDIChannelEvent *pSearch = pEvent->GetSister();
-        m_vState.erase(std::remove_if(m_vState.begin(), m_vState.end(), [&](int x) {return m_vEvents[x] == pSearch; }));
-        vector<int>::iterator it = m_vState.begin();
+        MIDIChannelEvent* pSearch = pEvent->GetSister();
+        // linear search and erase. No biggie given N is number of simultaneous notes being played
+        vector< int >::iterator it = m_vState.begin();
         while (it != m_vState.end())
         {
-            if (m_vEvents[*it]->GetParam1() == iNote)
-                m_pNoteState[iNote] = *it;
-            ++it;
+            if (m_vEvents[*it] == pSearch)
+                it = m_vState.erase(it);
+            else
+            {
+                if (it != m_vState.end() && m_vEvents[*it]->GetParam1() == iNote)
+                    m_pNoteState[iNote] = *it;
+                ++it;
+            }
         }
     }
 }
@@ -1740,7 +1746,7 @@ void MainScreen::RenderBorder()
 
 void MainScreen::RenderText()
 {
-    int iLines = 1;
+    int iLines = 2;
     if ( m_bShowFPS ) iLines++;
 
     // Screen info
@@ -1797,6 +1803,13 @@ void MainScreen::RenderStatus( LPRECT prcStatus )
     OffsetRect( prcStatus, -2, -1 );
     m_pRenderer->DrawText( TEXT( "Time:" ), Renderer::Small, prcStatus, 0, 0xFFFFFFFF );
     m_pRenderer->DrawText( sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF );
+
+    OffsetRect(prcStatus, 2, 16 + 1);
+    m_pRenderer->DrawText(TEXT("Score:"), Renderer::Small, prcStatus, 0, 0xFF404040);
+    m_pRenderer->DrawText(TEXT("N/A"), Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
+    OffsetRect(prcStatus, -2, -1);
+    m_pRenderer->DrawText(TEXT("Score:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
+    m_pRenderer->DrawText(TEXT("N/A"), Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
 
     if ( m_bShowFPS )
     {

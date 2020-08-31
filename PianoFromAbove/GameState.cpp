@@ -1048,6 +1048,11 @@ GameState::GameError MainScreen::Logic( void )
         buffer_surface->Release();
     }
     m_lluCurrentFrame++;
+
+    // show dump speed on the title bar
+    TCHAR sTitle[1024];
+    _stprintf_s(sTitle, TEXT("%ws (%.1lf%%)"), mInfo.sFilename.c_str(), (m_dFPS / m_Timer.m_dFramerate) * 100.0);
+    SetWindowText(g_hWnd, sTitle);
     return Success;
 }
 
@@ -1979,7 +1984,7 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
 
     // Build the tempo text
     TCHAR sTempo[128];
-    _stprintf_s(sTempo, TEXT("%.0f bpm"), 60000000.0f / static_cast<float>(m_iMicroSecsPerBeat));
+    _stprintf_s(sTempo, TEXT("%.1f bpm"), 60000000.0f / static_cast<float>(m_iMicroSecsPerBeat));
 
     // Display the text
     InflateRect(prcStatus, -6, -3);

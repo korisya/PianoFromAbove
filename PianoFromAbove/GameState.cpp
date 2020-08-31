@@ -1925,7 +1925,7 @@ void MainScreen::RenderBorder()
 
 void MainScreen::RenderText()
 {
-    int iLines = 1;
+    int iLines = 2;
 
     // Screen info
     RECT rcStatus = { m_pRenderer->GetBufferWidth() - 156, 0, m_pRenderer->GetBufferWidth(), 6 + 16 * iLines };
@@ -1977,6 +1977,10 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
             -m_llStartTime / 60000000, (-m_llStartTime % 60000000) / 1000000.0,
             mInfo.llTotalMicroSecs / 60000000, (mInfo.llTotalMicroSecs % 60000000) / 1000000.0);
 
+    // Build the tempo text
+    TCHAR sTempo[128];
+    _stprintf_s(sTempo, TEXT("%.0f bpm"), 60000000.0f / static_cast<float>(m_iMicroSecsPerBeat));
+
     // Display the text
     InflateRect(prcStatus, -6, -3);
 
@@ -1986,6 +1990,13 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
     OffsetRect(prcStatus, -2, -1);
     m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
     m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
+
+    OffsetRect(prcStatus, 2, 16 + 1);
+    m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFF404040);
+    m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
+    OffsetRect(prcStatus, -2, -1);
+    m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
+    m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
 }
 
 void MainScreen::RenderMarker(LPRECT prcPos, const wchar_t* sStr)

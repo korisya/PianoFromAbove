@@ -25,10 +25,10 @@
 #define CLASSNAME  TEXT( "PianoFromAbove" )
 #define GFXCLASSNAME  TEXT( "PianoFromAboveGfx" )
 #define POSNCLASSNAME  TEXT( "PianoFromAbovePosCtrl" )
-//#define MINWIDTH 640
-//#define MINHEIGHT 469
-#define MINWIDTH 1296
-#define MINHEIGHT 779
+#define MINWIDTH 0
+#define MINHEIGHT 0
+//#define MINWIDTH 1296
+//#define MINHEIGHT 779
 
 class ISettings;
 class Config;
@@ -196,7 +196,7 @@ public:
     void SetControlsSettings(const ControlsSettings &ControlsSettings) { m_ControlsSettings = ControlsSettings; }
 
     // i really need to start writting getters and setters
-    bool m_bManualTimer = false;
+    bool m_bManualTimer = true;
 
 private:
     // Singleton

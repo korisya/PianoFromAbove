@@ -572,7 +572,7 @@ void MainScreen::InitColors()
 {
     m_csBackground.SetColor( 0x00464646, 0.7f, 1.3f );
     m_csKBBackground.SetColor( 0x00999999, 0.4f, 0.0f );
-    m_csKBRed.SetColor( 0x0000E6E6, 0.5f ); // "red"
+    m_csKBRed.SetColor( 0x00CF0075, 0.5f ); // "red"
     m_csKBWhite.SetColor( 0x00FFFFFF, 0.8f, 0.6f );
     m_csKBSharp.SetColor( 0x00404040, 0.5f, 0.0f );
 }
@@ -634,19 +634,7 @@ GameState::GameError MainScreen::Init()
 
     m_OutDevice.SetVolume( 1.0 );
     m_Timer.Init(config.m_bManualTimer);
-    if (m_Timer.m_bManualTimer) {
-        // get the screen's refresh rate
-        DWM_TIMING_INFO timing_info;
-        memset(&timing_info, 0, sizeof(timing_info));
-        timing_info.cbSize = sizeof(timing_info);
-        if (FAILED(DwmGetCompositionTimingInfo(NULL, &timing_info))) {
-            MessageBox(NULL, L"Failed to get the screen refresh rate! Defaulting to 60hz...", L"", MB_ICONERROR);
-            m_Timer.SetFrameRate(60);
-        } else {
-            m_Timer.SetFrameRate(ceil(static_cast<float>(timing_info.rateRefresh.uiNumerator) / static_cast<float>(timing_info.rateRefresh.uiDenominator)));
-        }
-
-    }
+    m_Timer.SetFrameRate(60);
 
     batch_vertices.reserve(vq_capacity_proc_res);
     return Success;
@@ -947,10 +935,7 @@ GameState::GameError MainScreen::Logic( void )
     m_iStartNote = min( cVisual.iFirstKey, cVisual.iLastKey );
     m_iEndNote = max( cVisual.iFirstKey, cVisual.iLastKey );
     m_bShowFPS = cVideo.bShowFPS;
-    if (m_Timer.m_bManualTimer)
-        m_pRenderer->SetLimitFPS(true);
-    else
-        m_pRenderer->SetLimitFPS( cVideo.bLimitFPS );
+    m_pRenderer->SetLimitFPS(false);
     if ( cVisual.iBkgColor != m_csBackground.iOrigBGR ) m_csBackground.SetColor( cVisual.iBkgColor, 0.7f, 1.3f );
 
     double dMaxCorrect = ( mInfo.iMaxVolume > 0 ? 127.0 / mInfo.iMaxVolume : 1.0 );
@@ -1023,8 +1008,10 @@ GameState::GameError MainScreen::Logic( void )
     if ( llOldPos != llNewPos ) cPlayback.SetPosition( static_cast< int >( llNewPos ) );
 
     // Song's over
-    if ( !m_bPaused && m_llStartTime >= llMaxTime )
-        cPlayback.SetPaused( true, true );
+    if (!m_bPaused && m_llStartTime >= llMaxTime) {
+        cPlayback.SetPaused(true, true);
+        CloseHandle(m_hVideoPipe);
+    }
 
     if (m_Timer.m_bManualTimer)
         m_Timer.IncrementFrame();
@@ -1938,9 +1925,7 @@ void MainScreen::RenderBorder()
 
 void MainScreen::RenderText()
 {
-    int iLines = 4;
-    if (m_Timer.m_bManualTimer)
-        iLines++;
+    int iLines = 1;
 
     // Screen info
     RECT rcStatus = { m_pRenderer->GetBufferWidth() - 156, 0, m_pRenderer->GetBufferWidth(), 6 + 16 * iLines };
@@ -1992,28 +1977,6 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
             -m_llStartTime / 60000000, (-m_llStartTime % 60000000) / 1000000.0,
             mInfo.llTotalMicroSecs / 60000000, (mInfo.llTotalMicroSecs % 60000000) / 1000000.0);
 
-    // Build the FPS text
-    TCHAR sFPS[128];
-    _stprintf_s(sFPS, TEXT("%.1lf"), m_dFPS);
-
-    // Build vertex capacity text
-    TCHAR sVQCapacity[128];
-    _stprintf_s(sVQCapacity, TEXT("%llu"), batch_vertices.capacity());
-
-    // Build state debug text
-    size_t state_size = 0;
-    for (auto note_state : m_vState)
-        state_size += note_state.size();
-    TCHAR sStateSize[128];
-    _stprintf_s(sStateSize, TEXT("%llu"), state_size);
-
-    TCHAR sSpeed[128];
-    if (m_Timer.m_bManualTimer) {
-        // Build speed text if in manual timer mode
-        _stprintf_s(sSpeed, TEXT("%.1f%%"), (m_dFPS / m_Timer.m_dFramerate) * 100.0);
-    }
-
-
     // Display the text
     InflateRect(prcStatus, -6, -3);
 
@@ -2023,36 +1986,6 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
     OffsetRect(prcStatus, -2, -1);
     m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
     m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
-
-    OffsetRect(prcStatus, 2, 16 + 1);
-    m_pRenderer->DrawText(TEXT("FPS:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-    m_pRenderer->DrawText(sFPS, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
-    OffsetRect(prcStatus, -2, -1);
-    m_pRenderer->DrawText(TEXT("FPS:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-    m_pRenderer->DrawText(sFPS, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
-
-    OffsetRect(prcStatus, 2, 16 + 1);
-    m_pRenderer->DrawText(TEXT("VQ Capacity:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-    m_pRenderer->DrawText(sVQCapacity, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
-    OffsetRect(prcStatus, -2, -1);
-    m_pRenderer->DrawText(TEXT("VQ Capacity:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-    m_pRenderer->DrawText(sVQCapacity, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
-
-    OffsetRect(prcStatus, 2, 16 + 1);
-    m_pRenderer->DrawText(TEXT("m_vState:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-    m_pRenderer->DrawText(sStateSize, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
-    OffsetRect(prcStatus, -2, -1);
-    m_pRenderer->DrawText(TEXT("m_vState:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-    m_pRenderer->DrawText(sStateSize, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
-
-    if (m_Timer.m_bManualTimer) {
-        OffsetRect(prcStatus, 2, 16 + 1);
-        m_pRenderer->DrawText(TEXT("Speed:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-        m_pRenderer->DrawText(sSpeed, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
-        OffsetRect(prcStatus, -2, -1);
-        m_pRenderer->DrawText(TEXT("Speed:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-        m_pRenderer->DrawText(sSpeed, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
-    }
 }
 
 void MainScreen::RenderMarker(LPRECT prcPos, const wchar_t* sStr)

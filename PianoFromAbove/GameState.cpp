@@ -19,6 +19,8 @@
 #include "resource.h"
 #include "ConfigProcs.h"
 
+HANDLE g_hVideoPipe = NULL;
+
 const wstring GameState::Errors[] =
 {
     L"Success.",
@@ -120,6 +122,15 @@ SplashScreen::SplashScreen( HWND hWnd, Renderer *pRenderer ) : GameState( hWnd, 
     HGLOBAL hRes = LoadResource( NULL, hResInfo );
     int iSize = SizeofResource( NULL, hResInfo );
     unsigned char *pData = ( unsigned char * )LockResource( hRes );
+
+    g_hVideoPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\pfadump"),
+        PIPE_ACCESS_OUTBOUND,
+        PIPE_TYPE_BYTE | PIPE_WAIT,
+        PIPE_UNLIMITED_INSTANCES,
+        static_cast<DWORD>(1280 * 720 * 4 * 1024),
+        0,
+        0,
+        nullptr);
 
     // Parse MIDI
     m_MIDI.ParseMIDI( pData, iSize );
@@ -608,17 +619,6 @@ void MainScreen::InitState()
     // m_Timer will be initialized *later*
     m_RealTimer.Init(false);
 
-    if (m_bDumpFrames) {
-        m_hVideoPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\pfadump"),
-            PIPE_ACCESS_OUTBOUND,
-            PIPE_TYPE_BYTE | PIPE_WAIT,
-            PIPE_UNLIMITED_INSTANCES,
-            static_cast<DWORD>(1280 * 720 * 4 * 1024),
-            0,
-            0,
-            nullptr);
-    }
-
     memset( m_pNoteState, -1, sizeof( m_pNoteState ) );
     
     AdvanceIterators( m_llStartTime, true );
@@ -1010,7 +1010,7 @@ GameState::GameError MainScreen::Logic( void )
     // Song's over
     if (!m_bPaused && m_llStartTime >= llMaxTime) {
         cPlayback.SetPaused(true, true);
-        CloseHandle(m_hVideoPipe);
+        CloseHandle(g_hVideoPipe);
     }
 
     if (m_Timer.m_bManualTimer)
@@ -1044,7 +1044,7 @@ GameState::GameError MainScreen::Logic( void )
         buffer_surface->UnlockRect();
 
         // Write to pipe
-        WriteFile(m_hVideoPipe, &m_vImageData[0], static_cast<DWORD>(m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight() * 4), nullptr, nullptr);
+        WriteFile(g_hVideoPipe, &m_vImageData[0], static_cast<DWORD>(m_pRenderer->GetBufferWidth() * m_pRenderer->GetBufferHeight() * 4), nullptr, nullptr);
         buffer_surface->Release();
     }
     m_lluCurrentFrame++;

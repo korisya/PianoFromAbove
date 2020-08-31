@@ -21,6 +21,8 @@ using namespace std;
 #include "Misc.h"
 #include "robin_hood.h"
 
+extern HANDLE g_hVideoPipe;
+
 //Abstract base class
 class GameState
 {
@@ -295,5 +297,4 @@ private:
     bool m_bDumpFrames = true;
     std::vector<unsigned char> m_vImageData;
     size_t m_lluCurrentFrame;
-    HANDLE m_hVideoPipe;
 };

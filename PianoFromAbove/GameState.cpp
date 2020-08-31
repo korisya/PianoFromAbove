@@ -613,7 +613,7 @@ void MainScreen::InitState()
             PIPE_ACCESS_OUTBOUND,
             PIPE_TYPE_BYTE | PIPE_WAIT,
             PIPE_UNLIMITED_INSTANCES,
-            static_cast<DWORD>(1280 * 720 * 4 * 120),
+            static_cast<DWORD>(1280 * 720 * 4 * 1024),
             0,
             0,
             nullptr);

@@ -1945,6 +1945,11 @@ void MainScreen::RenderText()
     // Screen info
     RECT rcStatus = { m_pRenderer->GetBufferWidth() - 156, 0, m_pRenderer->GetBufferWidth(), 6 + 16 * iLines };
 
+    // Current marker (if there is one)
+    RECT rcMarker;
+    m_pRenderer->DrawText(m_wsMarker.c_str(), Renderer::Small, &rcMarker, DT_CALCRECT, 0);
+    rcMarker = { 0, rcMarker.top, rcMarker.right - rcMarker.left + 12, rcMarker.bottom + 6 };
+
     const auto d3d_dev = ((D3D9Renderer*)m_pRenderer)->m_pd3dDevice;
     if (m_pRenderer->m_bTransparent) {
         ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
@@ -1952,17 +1957,16 @@ void MainScreen::RenderText()
         d3d_dev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
         d3d_dev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
         m_pRenderer->DrawRect(static_cast<float>(rcStatus.left), static_cast<float>(rcStatus.top),
-            static_cast<float>(rcStatus.right - rcStatus.left), static_cast<float>(rcStatus.bottom - rcStatus.top), 0x80FFFFFF);
+            static_cast<float>(rcStatus.right - rcStatus.left), static_cast<float>(rcStatus.bottom - rcStatus.top), 0x80000000);
+        if (!m_wsMarker.empty()) {
+            m_pRenderer->DrawRect(static_cast<float>(rcMarker.left), static_cast<float>(rcMarker.top),
+                static_cast<float>(rcMarker.right - rcMarker.left), static_cast<float>(rcMarker.bottom - rcMarker.top), 0x80000000);
+        }
         ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
         d3d_dev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
         d3d_dev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
         d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
     }
-
-    // Current marker (if there is one)
-    RECT rcMarker;
-    m_pRenderer->DrawText(m_wsMarker.c_str(), Renderer::Small, &rcMarker, DT_CALCRECT, 0);
-    rcMarker = { 0, rcMarker.top, rcMarker.right - rcMarker.left + 12, rcMarker.bottom + 6 };
 
     int iMsgCY = 200;
     RECT rcMsg = { 0, static_cast<int>(m_pRenderer->GetBufferHeight() * (1.0f - KBPercent) - iMsgCY) / 2 };
@@ -1973,17 +1977,16 @@ void MainScreen::RenderText()
     unsigned iBkgColor = 0x40000000;
     m_pRenderer->DrawRect(static_cast<float>(rcStatus.left), static_cast<float>(rcStatus.top),
         static_cast<float>(rcStatus.right - rcStatus.left), static_cast<float>(rcStatus.bottom - rcStatus.top), 0x80000000);
-    ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
-
-    if (m_pRenderer->m_bTransparent)
-        d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA | D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
-
-    /*
     if (!m_wsMarker.empty()) {
         m_pRenderer->DrawRect(static_cast<float>(rcMarker.left), static_cast<float>(rcMarker.top),
             static_cast<float>(rcMarker.right - rcMarker.left), static_cast<float>(rcMarker.bottom - rcMarker.top), 0x80000000);
     }
-    */
+
+    if (m_pRenderer->m_bTransparent) {
+        ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
+        d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA | D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
+    }
+
     if (m_bZoomMove)
         m_pRenderer->DrawRect(static_cast<float>(rcMsg.left), static_cast<float>(rcMsg.top),
             static_cast<float>(rcMsg.right - rcMsg.left), static_cast<float>(rcMsg.bottom - rcMsg.top), iBkgColor);
@@ -1992,7 +1995,7 @@ void MainScreen::RenderText()
     m_pRenderer->BeginText();
 
     RenderStatus(&rcStatus);
-    //RenderMarker(&rcMarker, m_wsMarker.c_str()); // lol
+    RenderMarker(&rcMarker, m_wsMarker.c_str()); // lol
     if (m_bZoomMove)
         RenderMessage(&rcMsg, TEXT("- Left-click and drag to move the screen\n- Right-click and drag to zoom horizontally\n- Press Escape to abort changes\n- Press Ctrl+V to save changes"));
 

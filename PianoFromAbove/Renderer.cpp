@@ -132,8 +132,8 @@ HRESULT D3D9Renderer::RestoreDeviceObjects()
     m_pLargeFont->OnResetDevice();
 
     m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, TRUE );
-    m_pd3dDevice->SetRenderState( D3DRS_SRCBLEND, D3DBLEND_INVSRCALPHA );
-    m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_SRCALPHA );
+    m_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
     m_pd3dDevice->SetFVF( SCREEN_VERTEX::FVF );
 

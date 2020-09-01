@@ -235,14 +235,14 @@ void VisualSettings::LoadConfigValues( TiXmlElement *txRoot )
             if ( txColor->QueryIntAttribute( "R", &r ) == TIXML_SUCCESS &&
                  txColor->QueryIntAttribute( "G", &g ) == TIXML_SUCCESS &&
                  txColor->QueryIntAttribute( "B", &b ) == TIXML_SUCCESS )
-                this->colors[i] = ( ( r & 0xFF ) << 0 ) | ( ( g & 0xFF ) << 8 ) | ( ( b & 0xFF ) << 16 );
+                this->colors[i] = ( ( r & 0xFF ) << 0 ) | ( ( g & 0xFF ) << 8 ) | ( ( b & 0xFF ) << 16 ) | 0xFF << 24;
     
     TiXmlElement *txBkgColor = txVisual->FirstChildElement( "BkgColor" );
     if ( txBkgColor )
         if ( txBkgColor->QueryIntAttribute( "R", &r ) == TIXML_SUCCESS &&
              txBkgColor->QueryIntAttribute( "G", &g ) == TIXML_SUCCESS &&
              txBkgColor->QueryIntAttribute( "B", &b ) == TIXML_SUCCESS )
-            this->iBkgColor = ( ( r & 0xFF ) << 0 ) | ( ( g & 0xFF ) << 8 ) | ( ( b & 0xFF ) << 16 );
+            this->iBkgColor = ( ( r & 0xFF ) << 0 ) | ( ( g & 0xFF ) << 8 ) | ( ( b & 0xFF ) << 16 ) | 0xFF << 24;
 }
 
 void AudioSettings::LoadConfigValues( TiXmlElement *txRoot )

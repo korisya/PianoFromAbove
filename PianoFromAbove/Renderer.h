@@ -49,6 +49,7 @@ public:
 
     // TODO: required for screenshots, figure out a better way to do this
     LPDIRECT3DDEVICE9 m_pd3dDevice = nullptr;
+    bool m_bTransparent = true;
 
 protected:
     int m_iBufferWidth, m_iBufferHeight;
@@ -107,6 +108,7 @@ public:
     HRESULT EndStaticBuffer();
     HRESULT DrawStaticBuffer();
     HRESULT RenderBatch();
+    HRESULT FlushBuffer();
     //LPDIRECT3DDEVICE9 m_pd3dDevice; // The rendering device
 
 private:
@@ -123,7 +125,6 @@ private:
     bool m_bIsDeviceValid;
     
     HRESULT PrepBuffer( int iTriangles );
-    HRESULT FlushBuffer();
     LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer;
     unsigned m_iTriangle;
     unsigned char *m_pVertexData;

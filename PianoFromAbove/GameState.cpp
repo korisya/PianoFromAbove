@@ -581,11 +581,11 @@ void MainScreen::InitNoteMap( const vector< MIDIEvent* > &vEvents )
 // Display colors
 void MainScreen::InitColors()
 {
-    m_csBackground.SetColor( 0x00464646, 0.7f, 1.3f );
-    m_csKBBackground.SetColor( 0x00999999, 0.4f, 0.0f );
-    m_csKBRed.SetColor( 0x00CF0075, 0.5f ); // "red"
-    m_csKBWhite.SetColor( 0x00FFFFFF, 0.8f, 0.6f );
-    m_csKBSharp.SetColor( 0x00404040, 0.5f, 0.0f );
+    m_csBackground.SetColor( 0xFF464646, 0.7f, 1.3f );
+    m_csKBBackground.SetColor( 0xFF999999, 0.4f, 0.0f );
+    m_csKBRed.SetColor( 0xFFCF0075, 0.5f ); // "red"
+    m_csKBWhite.SetColor( 0xFFFFFFFF, 0.8f, 0.6f );
+    m_csKBSharp.SetColor( 0xFF404040, 0.5f, 0.0f );
 }
 
 // Init state vars. Only those which validate the date.
@@ -1017,7 +1017,8 @@ GameState::GameError MainScreen::Logic( void )
         m_Timer.IncrementFrame();
 
     // Dump frame!!!!
-    if (m_bDumpFrames) {
+    // first frame shouldn't be dumped
+    if (m_bDumpFrames && m_lluCurrentFrame != 0) {
         const auto& device = m_pRenderer->m_pd3dDevice;
         // Make a surface to store the data
         IDirect3DSurface9* buffer_surface;
@@ -1516,7 +1517,7 @@ void MainScreen::RenderGlobals()
 
 void MainScreen::RenderLines()
 {
-    m_pRenderer->DrawRect( m_fNotesX, m_fNotesY, m_fNotesCX, m_fNotesCY, m_csBackground.iPrimaryRGB );
+    //m_pRenderer->DrawRect( m_fNotesX, m_fNotesY, m_fNotesCX, m_fNotesCY, m_csBackground.iPrimaryRGB );
 
     // Vertical lines
     for ( int i = m_iStartNote + 1; i <= m_iEndNote; i++ )
@@ -1526,8 +1527,12 @@ void MainScreen::RenderLines()
             float fStartX = MIDI::IsSharp( m_iStartNote ) * SharpRatio / 2.0f;
             float x = m_fNotesX + m_fWhiteCX * ( iWhiteKeys + fStartX );
             x = floor( x + 0.5f ); // Needs to be rounded because of the gradient
+            /*
             m_pRenderer->DrawRect( x - 1.0f, m_fNotesY, 3.0f, m_fNotesCY,
                 m_csBackground.iDarkRGB, m_csBackground.iVeryDarkRGB, m_csBackground.iVeryDarkRGB, m_csBackground.iDarkRGB );
+                */
+            m_pRenderer->DrawRect(x - 1.0f, m_fNotesY, 3.0f, m_fNotesCY,
+                0x55000000, 0x55FFFFFF, 0x55FFFFFF, 0x55000000);
         }
 
     // Horizontal (Hard!)
@@ -1583,9 +1588,14 @@ void MainScreen::RenderLines()
             llNextBeatTime = GetTickTime( iNextBeatTick, iLastTempoTick, llLastTempoTime, iMicroSecsPerBeat ); 
             float y = m_fNotesY + m_fNotesCY * ( 1.0f - ( (float)llNextBeatTime - m_fRndStartTime ) / m_llTimeSpan );
             y = floor( y + 0.5f );
+            /*
             if ( bIsMeasure && y + 1.0f > m_fNotesY )
                 m_pRenderer->DrawRect( m_fNotesX, y - 1.0f, m_fNotesCX, 3.0f,
                     m_csBackground.iDarkRGB, m_csBackground.iDarkRGB, m_csBackground.iVeryDarkRGB, m_csBackground.iVeryDarkRGB );
+                    */
+            if (bIsMeasure && y + 1.0f > m_fNotesY)
+                m_pRenderer->DrawRect(m_fNotesX, y - 1.0f, m_fNotesCX, 3.0f,
+                    0x55000000, 0x55000000, 0x55FFFFFF, 0x55FFFFFF);
 
             iCurrTick = iNextBeatTick;
         }
@@ -1935,6 +1945,20 @@ void MainScreen::RenderText()
     // Screen info
     RECT rcStatus = { m_pRenderer->GetBufferWidth() - 156, 0, m_pRenderer->GetBufferWidth(), 6 + 16 * iLines };
 
+    const auto d3d_dev = ((D3D9Renderer*)m_pRenderer)->m_pd3dDevice;
+    if (m_pRenderer->m_bTransparent) {
+        ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
+        d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA);
+        d3d_dev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+        d3d_dev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+        m_pRenderer->DrawRect(static_cast<float>(rcStatus.left), static_cast<float>(rcStatus.top),
+            static_cast<float>(rcStatus.right - rcStatus.left), static_cast<float>(rcStatus.bottom - rcStatus.top), 0x80FFFFFF);
+        ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
+        d3d_dev->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        d3d_dev->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+        d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
+    }
+
     // Current marker (if there is one)
     RECT rcMarker;
     m_pRenderer->DrawText(m_wsMarker.c_str(), Renderer::Small, &rcMarker, DT_CALCRECT, 0);
@@ -1949,10 +1973,17 @@ void MainScreen::RenderText()
     unsigned iBkgColor = 0x40000000;
     m_pRenderer->DrawRect(static_cast<float>(rcStatus.left), static_cast<float>(rcStatus.top),
         static_cast<float>(rcStatus.right - rcStatus.left), static_cast<float>(rcStatus.bottom - rcStatus.top), 0x80000000);
+    ((D3D9Renderer*)m_pRenderer)->FlushBuffer();
+
+    if (m_pRenderer->m_bTransparent)
+        d3d_dev->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA | D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
+
+    /*
     if (!m_wsMarker.empty()) {
         m_pRenderer->DrawRect(static_cast<float>(rcMarker.left), static_cast<float>(rcMarker.top),
             static_cast<float>(rcMarker.right - rcMarker.left), static_cast<float>(rcMarker.bottom - rcMarker.top), 0x80000000);
     }
+    */
     if (m_bZoomMove)
         m_pRenderer->DrawRect(static_cast<float>(rcMsg.left), static_cast<float>(rcMsg.top),
             static_cast<float>(rcMsg.right - rcMsg.left), static_cast<float>(rcMsg.bottom - rcMsg.top), iBkgColor);
@@ -1961,7 +1992,7 @@ void MainScreen::RenderText()
     m_pRenderer->BeginText();
 
     RenderStatus(&rcStatus);
-    RenderMarker(&rcMarker, m_wsMarker.c_str()); // lol
+    //RenderMarker(&rcMarker, m_wsMarker.c_str()); // lol
     if (m_bZoomMove)
         RenderMessage(&rcMsg, TEXT("- Left-click and drag to move the screen\n- Right-click and drag to zoom horizontally\n- Press Escape to abort changes\n- Press Ctrl+V to save changes"));
 

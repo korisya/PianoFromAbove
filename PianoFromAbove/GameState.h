@@ -201,6 +201,7 @@ private:
     void AdvanceIterators( long long llTime, bool bIsJump );
     MIDIMetaEvent* GetPrevious( eventvec_t::const_iterator &itCurrent,
                                 const eventvec_t &vEventMap, int iDataLen );
+    void ApplyColorEvent(MIDIMetaEvent* event);
 
     // MIDI helpers
     int GetCurrentTick( long long llStartTime );
@@ -230,16 +231,19 @@ private:
     MIDI m_MIDI; // The song to display
     vector< MIDIChannelEvent* > m_vEvents; // The channel events of the song
     vector< MIDIMetaEvent* > m_vMetaEvents; // The meta events of the song
+    vector<bool> m_vColorOverridden; // The first color event for a track/channel overrides the color before it gets hit, this prevents PFA from overwriting it
     eventvec_t m_vNoteOns; // Map: note->time->Event pos. Used for fast(er) random access to the song.
     eventvec_t m_vNonNotes; // Tracked for jumping
     eventvec_t m_vProgramChange; // Tracked so we don't jump over them during random access
     eventvec_t m_vTempo; // Tracked for drawing measure lines
     eventvec_t m_vSignature; // Measure lines again
     eventvec_t m_vMarkers; // Tracked for section names in some longer MIDIs
+    eventvec_t m_vColorEvents;
     eventvec_t::const_iterator m_itNextProgramChange;
     eventvec_t::const_iterator m_itNextTempo;
     eventvec_t::const_iterator m_itNextSignature;
     eventvec_t::const_iterator m_itNextMarker;
+    eventvec_t::const_iterator m_itNextColorEvent;
     int m_iMicroSecsPerBeat, m_iLastTempoTick; // Tempo
     long long m_llLastTempoTime; // Tempo
     int m_iBeatsPerMeasure, m_iBeatType, m_iClocksPerMet, m_iLastSignatureTick; // Time signature
@@ -251,7 +255,6 @@ private:
     long long m_llStartTime, m_llTimeSpan;  // Times of the start and end events of the current window
     int m_iStartTick; // Tick that corresponds with m_llStartTime. Used to help with beat and metronome detection
     vector<int> m_vState[128];  // The notes that are on at time m_llStartTime.
-    int m_pNoteState[128]; // The last note that was turned on
     double m_dSpeed; // Speed multiplier
     bool m_bPaused; // Paused state
     Timer m_Timer; // Frame timers

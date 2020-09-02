@@ -195,7 +195,7 @@ private:
 //Base Event class
 //Should really be a single class with unions for the different events. much faster that way.
 //Might be forced to convert if batch processing is too slow
-class __declspec(novtable) MIDIEvent
+class MIDIEvent
 {
 public:
     //Event types
@@ -262,7 +262,7 @@ public:
     ~MIDIMetaEvent() { if ( m_pcData ) delete[] m_pcData; }
 
     enum MetaEventType { SequenceNumber, TextEvent, Copyright, SequenceName, InstrumentName, Lyric, Marker,
-                         CuePoint, ChannelPrefix = 0x20, PortPrefix = 0x21, EndOfTrack = 0x2F, SetTempo = 0x51,
+                         CuePoint, ColorEvent = 0x0A, ChannelPrefix = 0x20, PortPrefix = 0x21, EndOfTrack = 0x2F, SetTempo = 0x51,
                          SMPTEOffset = 0x54, TimeSignature = 0x58, KeySignature = 0x59, Proprietary = 0x7F };
     int ParseEvent( const unsigned char *pcData, size_t iMaxSize );
 

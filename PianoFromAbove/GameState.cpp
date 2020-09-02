@@ -533,6 +533,8 @@ MainScreen::MainScreen( wstring sMIDIFile, State eGameMode, HWND hWnd, Renderer 
 
 void MainScreen::InitNoteMap( const vector< MIDIEvent* > &vEvents )
 {
+    m_vColorOverridden.resize(m_MIDI.GetInfo().iNumTracks * 16);
+
     //Get only the channel events
     m_vEvents.reserve( vEvents.size() );
     m_vNoteOns.reserve(vEvents.size() / 2); 
@@ -573,6 +575,15 @@ void MainScreen::InitNoteMap( const vector< MIDIEvent* > &vEvents )
                 break;
             case MIDIMetaEvent::Marker:
                 m_vMarkers.push_back(pair< long long, int >(pEvent->GetAbsMicroSec(), m_vMetaEvents.size() - 1));
+                break;
+            case MIDIMetaEvent::ColorEvent:
+                if (pEvent->GetDataLen() >= 8) {
+                    // i can't turn this into a reference for some reason which sucks
+                    if (!m_vColorOverridden[pEvent->GetTrack() * 16 + pEvent->GetData()[2]])
+                        ApplyColorEvent(pEvent);
+                    m_vColorOverridden[pEvent->GetTrack() * 16 + pEvent->GetData()[2]] = true;
+                    m_vColorEvents.push_back(pair< long long, int >(pEvent->GetAbsMicroSec(), m_vMetaEvents.size() - 1));
+                }
                 break;
             }
         }
@@ -618,8 +629,6 @@ void MainScreen::InitState()
 
     // m_Timer will be initialized *later*
     m_RealTimer.Init(false);
-
-    memset( m_pNoteState, -1, sizeof( m_pNoteState ) );
     
     AdvanceIterators( m_llStartTime, true );
 }
@@ -708,6 +717,10 @@ void MainScreen::SetChannelSettings( const vector< bool > &vMuted, const vector<
         for ( int j = 0; j < 16; j++ )
             if ( mTrackInfo.aNoteCount[j] > 0 )
             {
+                if (m_vColorOverridden[i * 16 + j] == true) {
+                    iPos++;
+                    continue;
+                }
                 MuteChannel( i, j, bMuted ? vMuted[min( iPos, vMuted.size() - 1 )] : false );
                 HideChannel( i, j, bHidden ? vHidden[min( iPos, vHidden.size() - 1 )] : false );
                 if ( bColor && iPos < vColor.size() )
@@ -1080,7 +1093,6 @@ void MainScreen::UpdateState( int iPos )
     if ( eEventType == MIDIChannelEvent::NoteOn && iVelocity > 0 )
     {
         note_state.push_back( iPos );
-        m_pNoteState[iNote] = iPos;
     }
     else
     {
@@ -1103,11 +1115,6 @@ void MainScreen::UpdateState( int iPos )
                 }
             }
         }
-
-        if (note_state.size() == 0)
-            m_pNoteState[iNote] = -1;
-        else
-            m_pNoteState[iNote] = note_state.back();
     }
 }
 
@@ -1139,7 +1146,6 @@ void MainScreen::JumpTo(long long llStartTime, bool bUpdateGUI)
     // Find the notes that occur simultaneously with the previous note on
     for (auto& note_state : m_vState)
         note_state.clear();
-    memset(m_pNoteState, -1, sizeof(m_pNoteState));
     if (itMiddle != itBegin)
     {
         eventvec_t::iterator itPrev = itMiddle - 1;
@@ -1154,8 +1160,6 @@ void MainScreen::JumpTo(long long llStartTime, bool bUpdateGUI)
             if (pSister->GetAbsMicroSec() > llStartTime) // > because we don't care about simultaneous ending notes
             {
                 (m_vState[pEvent->GetParam1()]).push_back(it->second);
-                if (m_pNoteState[pEvent->GetParam1()] < 0)
-                    m_pNoteState[pEvent->GetParam1()] = it->second;
             }
         }
         for (auto& note_state : m_vState)
@@ -1277,6 +1281,18 @@ void MainScreen::AdvanceIterators( long long llTime, bool bIsJump )
                 m_wsMarker = std::wstring();
             }
         }
+
+        auto itCurColorEvent = m_itNextColorEvent;
+        m_itNextColorEvent = upper_bound(m_vColorEvents.begin(), m_vColorEvents.end(), pair< long long, int >(llTime, m_vMetaEvents.size()));
+        if (itCurMarker != m_itNextColorEvent) {
+            if (m_itNextColorEvent != m_vColorEvents.begin() && (m_itNextColorEvent - 1)->second != -1) {
+                auto eEvent = m_vMetaEvents[(m_itNextColorEvent - 1)->second];
+                ApplyColorEvent(eEvent);
+            }
+            else {
+                // TODO: seek properly? this is supposed to be used for framedump so this isn't important right now
+            }
+        }
     }
     else
     {
@@ -1318,6 +1334,22 @@ void MainScreen::AdvanceIterators( long long llTime, bool bIsJump )
                 m_wsMarker = std::wstring();
             }
         }
+        /*
+        auto itCurColorEvent = m_itNextColorEvent;
+        while (m_itNextColorEvent != m_vColorEvents.end() && m_itNextColorEvent->first <= llTime)
+            ++m_itNextColorEvent;
+        if (itCurColorEvent != m_itNextColorEvent) {
+            if (m_itNextColorEvent != m_vColorEvents.begin() && (m_itNextColorEvent - 1)->second != -1) {
+                auto eEvent = m_vMetaEvents[(m_itNextColorEvent - 1)->second];
+                ApplyColorEvent(eEvent);
+            }
+        }
+        */
+        for (; m_itNextColorEvent != m_vColorEvents.end() && m_itNextColorEvent->first <= llTime; ++m_itNextColorEvent)
+        {
+            MIDIMetaEvent* pEvent = m_vMetaEvents[m_itNextColorEvent->second];
+            ApplyColorEvent(pEvent);
+        }
     }
 }
 
@@ -1340,6 +1372,26 @@ MIDIMetaEvent* MainScreen::GetPrevious( eventvec_t::const_iterator &itCurrent,
         return pPrevious;
     }
     return NULL;
+}
+
+void MainScreen::ApplyColorEvent(MIDIMetaEvent* event) {
+    // logic basically copied from mmf
+    // partial transparency and gradients not supported
+    const auto size = event->GetDataLen();
+    const auto data = event->GetData();
+    if (event->GetMetaEventType() == MIDIMetaEvent::ColorEvent &&
+        (size == 8 || size == 12) &&
+        data[0] == 0x00 && data[1] == 0x0F &&
+        (data[2] < 16 || data[2] == 0x7F) &&
+        data[3] == 0) {
+        unsigned color = (0xFF << 24) | (data[6] << 16) | (data[5] << 8) | data[4];
+        auto& chan_settings = m_vTrackSettings[event->GetTrack()].aChannels[data[2]];
+        chan_settings.SetColor(color);
+        if (data[7] == 0)
+            chan_settings.bHidden = true;
+        else
+            chan_settings.bHidden = false;
+    }
 }
 
 // Gets the tick corresponding to llStartTime using current tempo
@@ -1783,10 +1835,22 @@ void MainScreen::RenderKeys()
     // Draw the white keys
     float fCurX = m_fNotesX + fStartX;
     float fCurY = fKeysY + fTransitionCY + fRedCY + fSpacerCY;
-    for ( int i = iStartRender; i <= iEndRender; i++ )
+    for (int i = iStartRender; i <= iEndRender; i++)
         if ( !MIDI::IsSharp( i ) )
         {
-            if ( m_pNoteState[i] == -1 )
+            int state = m_vState[i].size() == 0 ? -1 : m_vState[i].back();
+            MIDIChannelEvent* pEvent = (state >= 0 ? m_vEvents[state] : NULL);
+            if (pEvent && m_vTrackSettings[pEvent->GetTrack()].aChannels[pEvent->GetChannel()].bHidden) {
+                state = -1;
+                for (auto it = m_vState[i].rbegin(); it != m_vState[i].rend(); it++) {
+                    pEvent = m_vEvents[*it];
+                    if (!m_vTrackSettings[pEvent->GetTrack()].aChannels[pEvent->GetChannel()].bHidden) {
+                        state = *it;
+                        break;
+                    }
+                }
+            }
+            if ( state == -1 )
             {
                 m_pRenderer->DrawRect( fCurX + fKeyGap1 , fCurY, m_fWhiteCX - fKeyGap, fTopCY + fNearCY,
                     m_csKBWhite.iDarkRGB, m_csKBWhite.iDarkRGB, m_csKBWhite.iPrimaryRGB, m_csKBWhite.iPrimaryRGB );
@@ -1805,7 +1869,6 @@ void MainScreen::RenderKeys()
             }
             else
             {
-                const MIDIChannelEvent *pEvent = ( m_pNoteState[i] >= 0 ? m_vEvents[m_pNoteState[i]] : NULL );
                 const int iTrack = ( pEvent ? pEvent->GetTrack() : -1 );
                 const int iChannel = ( pEvent ? pEvent->GetChannel() : -1 );
 
@@ -1851,7 +1914,20 @@ void MainScreen::RenderKeys()
             const float fSharpTopX1 = x + m_fWhiteCX * ( SharpRatio - fSharpTop ) / 2.0f;
             const float fSharpTopX2 = fSharpTopX1 + m_fWhiteCX * fSharpTop;
 
-            if ( m_pNoteState[i] == -1 )
+            int state = m_vState[i].size() == 0 ? -1 : m_vState[i].back();
+            MIDIChannelEvent* pEvent = (state >= 0 ? m_vEvents[state] : NULL);
+            if (pEvent && m_vTrackSettings[pEvent->GetTrack()].aChannels[pEvent->GetChannel()].bHidden) {
+                state = -1;
+                for (auto it = m_vState[i].rbegin(); it != m_vState[i].rend(); it++) {
+                    pEvent = m_vEvents[*it];
+                    if (!m_vTrackSettings[pEvent->GetTrack()].aChannels[pEvent->GetChannel()].bHidden) {
+                        state = *it;
+                        break;
+                    }
+                }
+            }
+
+            if ( state == -1 )
             {
                 m_pRenderer->DrawSkew( fSharpTopX1, fCurY + fSharpCY - fNearCY,
                                        fSharpTopX2, fCurY + fSharpCY - fNearCY,
@@ -1879,7 +1955,6 @@ void MainScreen::RenderKeys()
             }
             else
             {
-                const MIDIChannelEvent *pEvent = ( m_pNoteState[i] >= 0 ? m_vEvents[m_pNoteState[i]] : NULL );
                 const int iTrack = ( pEvent ? pEvent->GetTrack() : -1 );
                 const int iChannel = ( pEvent ? pEvent->GetChannel() : -1 );
 

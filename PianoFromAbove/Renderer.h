@@ -14,6 +14,9 @@
 #include <d3dx9.h>
 #include <vector>
 
+#define WIDTH 1280
+#define HEIGHT 720
+
 class Renderer
 {
 public:

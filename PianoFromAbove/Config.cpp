@@ -14,6 +14,7 @@
 #include <fstream>
 using namespace std;
 
+#include "Renderer.h"
 #include "Config.h"
 #include "Misc.h"
 //-----------------------------------------------------------------------------
@@ -312,8 +313,10 @@ void ViewSettings::LoadConfigValues( TiXmlElement *txRoot )
     txView->QueryFloatAttribute( "ZoomX", &m_fZoomX );
     txView->QueryIntAttribute( "MainLeft", &m_iMainLeft );
     txView->QueryIntAttribute( "MainTop", &m_iMainTop );
-    txView->QueryIntAttribute( "MainWidth", &m_iMainWidth );
-    txView->QueryIntAttribute( "MainHeight", &m_iMainHeight );
+    //txView->QueryIntAttribute( "MainWidth", &m_iMainWidth );
+    //txView->QueryIntAttribute( "MainHeight", &m_iMainHeight );
+    m_iMainWidth = WIDTH + 16;
+    m_iMainHeight = HEIGHT + 59;
     txView->QueryIntAttribute( "LibWidth", &m_iLibWidth );
 }
 

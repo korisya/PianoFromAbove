@@ -127,7 +127,7 @@ SplashScreen::SplashScreen( HWND hWnd, Renderer *pRenderer ) : GameState( hWnd, 
         PIPE_ACCESS_OUTBOUND,
         PIPE_TYPE_BYTE | PIPE_WAIT,
         PIPE_UNLIMITED_INSTANCES,
-        static_cast<DWORD>(1280 * 720 * 4 * 256),
+        static_cast<DWORD>(WIDTH * HEIGHT * 4 * 256),
         0,
         0,
         nullptr);

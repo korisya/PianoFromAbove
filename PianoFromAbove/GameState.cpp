@@ -193,7 +193,7 @@ void SplashScreen::ColorChannel( int iTrack, int iChannel, unsigned int iColor, 
     if ( bRandom )
         m_vTrackSettings[iTrack].aChannels[iChannel].SetColor();
     else
-        m_vTrackSettings[iTrack].aChannels[iChannel].SetColor( iColor );
+        m_vTrackSettings[iTrack].aChannels[iChannel].SetColor( iColor, 1.0, 1.0 );
 }
 
 void SplashScreen::SetChannelSettings( const vector< bool > &vMuted, const vector< bool > &vHidden, const vector< unsigned > &vColor )
@@ -455,7 +455,7 @@ void SplashScreen::RenderNote( int iPos )
     // Compute true positions
     float x = GetNoteX( iNote );
     float y = m_fNotesY + m_fNotesCY * ( 1.0f - static_cast< float >( llNoteStart - m_llRndStartTime ) / TimeSpan );
-    float cx =  MIDI::IsSharp( iNote ) ? m_fWhiteCX * SharpRatio : m_fWhiteCX;
+    float cx =  MIDI::IsSharp( iNote ) ? m_fWhiteCX * SharpRatio - 1.0f : m_fWhiteCX - 1.0f;
     float cy = m_fNotesCY * ( static_cast< float >( llNoteEnd - llNoteStart ) / TimeSpan );
     float fDeflate = m_fWhiteCX * 0.15f / 2.0f;
 
@@ -597,7 +597,7 @@ void MainScreen::InitColors()
 {
     m_csBackground.SetColor( 0x00464646, 0.7f, 1.3f );
     m_csKBBackground.SetColor( 0x00999999, 0.4f, 0.0f );
-    m_csKBRed.SetColor( 0x0000E6E6, 0.5f ); // "red"
+    m_csKBRed.SetColor( 0x000D0A98, 0.5f ); // "red"
     m_csKBWhite.SetColor( 0x00FFFFFF, 0.8f, 0.6f );
     m_csKBSharp.SetColor( 0x00404040, 0.5f, 0.0f );
 }
@@ -682,7 +682,7 @@ void MainScreen::ColorChannel( int iTrack, int iChannel, unsigned int iColor, bo
     if ( bRandom )
         m_vTrackSettings[iTrack].aChannels[iChannel].SetColor();
     else
-        m_vTrackSettings[iTrack].aChannels[iChannel].SetColor( iColor );
+        m_vTrackSettings[iTrack].aChannels[iChannel].SetColor( iColor, 1.0, 1.0 );
 }
 
 // Sets to a random color
@@ -1826,7 +1826,7 @@ void MainScreen::RenderNote( thread_work_t& work )
     // despite the extra 4 bytes per event, this actually makes quite a difference in performance
     // who knew int to float was still so expensive?
     float y = m_fNotesY + m_fNotesCY * ( 1.0f - ( fNoteStart - m_fRndStartTime) / m_llTimeSpan );
-    float cx =  MIDI::IsSharp( iNote ) ? m_fWhiteCX * SharpRatio : m_fWhiteCX;
+    float cx =  MIDI::IsSharp( iNote ) ? m_fWhiteCX * SharpRatio - 1.0f : m_fWhiteCX - 1.0f;
     float cy = m_fNotesCY * ( ( fNoteEnd - fNoteStart ) / m_llTimeSpan);
     float fDeflate = m_fWhiteCX * 0.15f / 2.0f;
 
@@ -1924,6 +1924,7 @@ void MainScreen::RenderKeys()
                 m_pRenderer->DrawRect( fCurX + fKeyGap1, fCurY + fTopCY, m_fWhiteCX - fKeyGap, 2.0f,
                     m_csKBBackground.iDarkRGB, m_csKBBackground.iDarkRGB, m_csKBWhite.iVeryDarkRGB, m_csKBWhite.iVeryDarkRGB );
 
+                /** Remove the box on the middle C key
                 if ( i == MIDI::C4 )
                 {
                     float fMXGap = floor( m_fWhiteCX * 0.25f + 0.5f );
@@ -1931,6 +1932,7 @@ void MainScreen::RenderKeys()
                     float fMY = max( fCurY + fTopCY - fMCX - 5.0f, fCurY + fSharpCY + 5.0f );
                     m_pRenderer->DrawRect( fCurX + fKeyGap1 + fMXGap, fMY, fMCX, fCurY + fTopCY - 5.0f - fMY, m_csKBWhite.iDarkRGB );
                 }
+                **/
             }
             else
             {
@@ -2164,18 +2166,18 @@ void MainScreen::RenderStatus(LPRECT prcStatus)
     InflateRect(prcStatus, -6, -3);
 
     OffsetRect(prcStatus, 2, 1);
-    m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-    m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
+    // m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFF404040);
+    // m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
     OffsetRect(prcStatus, -2, -1);
-    m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-    m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
+    // m_pRenderer->DrawText(TEXT("Time:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
+    // m_pRenderer->DrawText(sTime, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
 
     OffsetRect(prcStatus, 2, 16 + 1);
-    m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFF404040);
-    m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
+    // m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFF404040);
+    // m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFF404040);
     OffsetRect(prcStatus, -2, -1);
-    m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
-    m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
+    // m_pRenderer->DrawText(TEXT("Tempo:"), Renderer::Small, prcStatus, 0, 0xFFFFFFFF);
+    // m_pRenderer->DrawText(sTempo, Renderer::Small, prcStatus, DT_RIGHT, 0xFFFFFFFF);
 
     if (m_bShowFPS) {
         OffsetRect(prcStatus, 2, 16 + 1);
